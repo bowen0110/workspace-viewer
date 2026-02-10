@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>Workspace</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.4/purify.min.js"></script>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --bg-surface: #161b22;
+      --bg-hover: #1c2128;
+      --border: #30363d;
+      --text: #e6edf3;
+      --text-muted: #8b949e;
+      --text-dim: #6e7681;
+      --accent: #58a6ff;
+      --code-bg: #1c2128;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { font-size: 16px; -webkit-text-size-adjust: 100%; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100dvh;
+    }
+
+    /* Header */
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 16px;
+    }
+    .header-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0;
+    }
+    .breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 14px;
+      flex-wrap: wrap;
+      flex: 1;
+      min-width: 0;
+    }
+    .breadcrumb a { color: var(--accent); text-decoration: none; cursor: pointer; }
+    .breadcrumb a:hover { text-decoration: underline; }
+    .breadcrumb .sep { color: var(--text-dim); font-size: 12px; }
+    .breadcrumb .current { color: var(--text); font-weight: 600; }
+
+    /* View toggle */
+    .view-toggle {
+      display: flex;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+      flex-shrink: 0;
+      margin-left: 10px;
+    }
+    .view-toggle button {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      padding: 4px 10px;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .view-toggle button:first-child { border-right: 1px solid var(--border); }
+    .view-toggle button.active { background: var(--accent); color: #fff; }
+    .view-toggle button:hover:not(.active) { background: var(--bg-hover); }
+
+    /* File list view */
+    .file-list {
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 8px 0;
+    }
+    .file-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      cursor: pointer;
+      border-bottom: 1px solid var(--border);
+      font-size: 15px;
+      color: var(--text);
+    }
+    .file-item:hover { background: var(--bg-hover); }
+    .file-item .icon { color: var(--text-muted); flex-shrink: 0; font-size: 18px; }
+    .file-item .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .file-item .count { color: var(--text-dim); font-size: 12px; }
+
+    /* Tree view */
+    .tree-view {
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 8px 0;
+    }
+    .tree-node { user-select: none; }
+    .tree-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      cursor: pointer;
+      font-size: 14px;
+      color: var(--text-muted);
+      border-left: 2px solid transparent;
+    }
+    .tree-label:hover { background: var(--bg-hover); color: var(--text); }
+    .tree-label.active { background: rgba(88,166,255,0.1); color: var(--accent); border-left-color: var(--accent); }
+    .tree-label .chevron {
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+      transition: transform 0.15s;
+      color: var(--text-dim);
+    }
+    .tree-label .chevron.open { transform: rotate(90deg); }
+    .tree-label .file-icon { flex-shrink: 0; font-size: 14px; }
+    .tree-label .label-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tree-children { padding-left: 16px; display: none; }
+    .tree-children.open { display: block; }
+
+    /* Content view */
+    .content {
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 20px 16px 60px;
+    }
+    .markdown-body { color: var(--text); font-size: 15px; line-height: 1.7; word-wrap: break-word; }
+    .markdown-body h1 { font-size: 1.7em; font-weight: 700; padding-bottom: 0.3em; border-bottom: 1px solid var(--border); margin: 0 0 16px; }
+    .markdown-body h2 { font-size: 1.35em; font-weight: 600; padding-bottom: 0.3em; border-bottom: 1px solid var(--border); margin: 24px 0 16px; }
+    .markdown-body h3 { font-size: 1.15em; font-weight: 600; margin: 24px 0 12px; }
+    .markdown-body h4, .markdown-body h5, .markdown-body h6 { font-size: 1em; font-weight: 600; margin: 20px 0 12px; }
+    .markdown-body p { margin: 0 0 16px; }
+    .markdown-body a { color: var(--accent); text-decoration: none; }
+    .markdown-body a:hover { text-decoration: underline; }
+    .markdown-body strong { font-weight: 600; }
+    .markdown-body ul, .markdown-body ol { padding-left: 2em; margin: 0 0 16px; }
+    .markdown-body li { margin: 4px 0; }
+    .markdown-body blockquote { margin: 0 0 16px; padding: 2px 16px; border-left: 3px solid var(--border); color: var(--text-muted); }
+    .markdown-body code { background: var(--code-bg); padding: 2px 6px; border-radius: 4px; font-size: 0.88em; font-family: 'SFMono-Regular', Consolas, monospace; }
+    .markdown-body pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 6px; padding: 16px; overflow-x: auto; margin: 0 0 16px; line-height: 1.5; }
+    .markdown-body pre code { background: none; padding: 0; font-size: 13px; }
+    .markdown-body table { border-collapse: collapse; width: 100%; margin: 0 0 16px; overflow-x: auto; display: block; }
+    .markdown-body th, .markdown-body td { padding: 8px 12px; border: 1px solid var(--border); text-align: left; }
+    .markdown-body th { background: var(--bg-surface); font-weight: 600; }
+    .markdown-body hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+    .markdown-body img { max-width: 100%; height: auto; border-radius: 6px; }
+    .loading { text-align: center; padding: 40px; color: var(--text-dim); }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-top">
+      <nav class="breadcrumb" id="breadcrumb"></nav>
+      <div class="view-toggle" id="viewToggle">
+        <button id="btnList" class="active" title="List view">📁</button>
+        <button id="btnTree" title="Tree view">🌲</button>
+      </div>
+    </div>
+  </div>
+  <div id="main"></div>
+
+  <script>
+    const main = document.getElementById('main');
+    const breadcrumbEl = document.getElementById('breadcrumb');
+    const btnList = document.getElementById('btnList');
+    const btnTree = document.getElementById('btnTree');
+    let treeData = null;
+    let viewMode = localStorage.getItem('viewMode') || 'list';
+    let currentFilePath = null;
+    let currentDirPath = [];
+
+    function sanitize(html) {
+      return DOMPurify.sanitize(html, { ADD_TAGS: ['input'], ADD_ATTR: ['type', 'checked', 'disabled', 'class'] });
+    }
+    function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+    function countFiles(items) {
+      let n = 0;
+      for (const item of items) { if (item.type === 'file') n++; else if (item.children) n += countFiles(item.children); }
+      return n;
+    }
+    function getItemsAtPath(pathParts) {
+      let items = treeData;
+      for (const part of pathParts) {
+        const dir = items.find(i => i.type === 'dir' && i.name === part);
+        if (!dir) return null;
+        items = dir.children;
+      }
+      return items;
+    }
+
+    // View toggle
+    function setViewMode(mode) {
+      viewMode = mode;
+      localStorage.setItem('viewMode', mode);
+      btnList.classList.toggle('active', mode === 'list');
+      btnTree.classList.toggle('active', mode === 'tree');
+      if (currentFilePath) return; // don't switch while viewing a file
+      if (mode === 'list') renderFileList(currentDirPath);
+      else renderTreeView();
+    }
+    btnList.addEventListener('click', () => setViewMode('list'));
+    btnTree.addEventListener('click', () => setViewMode('tree'));
+
+    // Breadcrumb
+    function renderBreadcrumb(pathParts, isFile) {
+      breadcrumbEl.textContent = '';
+      const root = document.createElement('a');
+      root.textContent = '📁 workspace';
+      root.addEventListener('click', () => { currentFilePath = null; navigateHome(); });
+      breadcrumbEl.appendChild(root);
+
+      const parts = isFile ? pathParts.slice(0, -1) : pathParts;
+      for (let i = 0; i < parts.length; i++) {
+        const sep = document.createElement('span');
+        sep.className = 'sep';
+        sep.textContent = ' / ';
+        breadcrumbEl.appendChild(sep);
+        const link = document.createElement('a');
+        link.textContent = parts[i];
+        const target = parts.slice(0, i + 1);
+        link.addEventListener('click', () => { currentFilePath = null; navigateDir(target); });
+        breadcrumbEl.appendChild(link);
+      }
+      if (isFile) {
+        const sep = document.createElement('span');
+        sep.className = 'sep';
+        sep.textContent = ' / ';
+        breadcrumbEl.appendChild(sep);
+        const cur = document.createElement('span');
+        cur.className = 'current';
+        cur.textContent = pathParts[pathParts.length - 1];
+        breadcrumbEl.appendChild(cur);
+      }
+    }
+
+    function navigateHome() {
+      currentDirPath = [];
+      if (viewMode === 'list') renderFileList([]);
+      else renderTreeView();
+    }
+
+    function navigateDir(pathParts) {
+      currentDirPath = pathParts;
+      if (viewMode === 'list') renderFileList(pathParts);
+      else renderTreeView();
+    }
+
+    // === LIST VIEW ===
+    function renderFileList(pathParts) {
+      currentDirPath = pathParts;
+      currentFilePath = null;
+      const items = pathParts.length === 0 ? treeData : getItemsAtPath(pathParts);
+      if (!items) { navigateHome(); return; }
+
+      renderBreadcrumb(pathParts, false);
+      main.textContent = '';
+      const list = document.createElement('div');
+      list.className = 'file-list';
+
+      if (pathParts.length > 0) {
+        const back = document.createElement('div');
+        back.className = 'file-item';
+        back.innerHTML = '<span class="icon">↩</span><span class="name" style="color:var(--text-muted)">..</span>';
+        back.addEventListener('click', () => { currentDirPath = pathParts.slice(0, -1); renderFileList(currentDirPath); });
+        list.appendChild(back);
+      }
+
+      for (const item of items) {
+        const row = document.createElement('div');
+        row.className = 'file-item';
+        if (item.type === 'dir') {
+          const count = countFiles(item.children);
+          row.innerHTML = `<span class="icon">📁</span><span class="name">${esc(item.name)}</span><span class="count">${count}</span>`;
+          row.addEventListener('click', () => { currentDirPath = [...pathParts, item.name]; renderFileList(currentDirPath); });
+        } else {
+          row.innerHTML = `<span class="icon">📄</span><span class="name">${esc(item.name)}</span>`;
+          row.addEventListener('click', () => loadFile(item.path));
+        }
+        list.appendChild(row);
+      }
+      main.appendChild(list);
+      window.scrollTo(0, 0);
+      history.replaceState(null, '', pathParts.length ? '#dir/' + pathParts.join('/') : '#');
+    }
+
+    // === TREE VIEW ===
+    function renderTreeView() {
+      currentFilePath = null;
+      renderBreadcrumb([], false);
+      main.textContent = '';
+      const container = document.createElement('div');
+      container.className = 'tree-view';
+      buildTreeNodes(treeData, container);
+      main.appendChild(container);
+      window.scrollTo(0, 0);
+      history.replaceState(null, '', '#');
+    }
+
+    function buildTreeNodes(items, parent) {
+      for (const item of items) {
+        const node = document.createElement('div');
+        node.className = 'tree-node';
+
+        if (item.type === 'dir') {
+          const label = document.createElement('div');
+          label.className = 'tree-label';
+
+          const chevron = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+          chevron.setAttribute('class', 'chevron');
+          chevron.setAttribute('viewBox', '0 0 16 16');
+          const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          path.setAttribute('fill', 'currentColor');
+          path.setAttribute('d', 'M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z');
+          chevron.appendChild(path);
+          label.appendChild(chevron);
+
+          const name = document.createElement('span');
+          name.className = 'label-name';
+          name.textContent = '📁 ' + item.name;
+          label.appendChild(name);
+
+          const children = document.createElement('div');
+          children.className = 'tree-children';
+
+          label.addEventListener('click', () => {
+            chevron.classList.toggle('open');
+            children.classList.toggle('open');
+          });
+
+          node.appendChild(label);
+          node.appendChild(children);
+          buildTreeNodes(item.children, children);
+        } else {
+          const label = document.createElement('div');
+          label.className = 'tree-label';
+          label.style.paddingLeft = '32px';
+          label.dataset.path = item.path;
+
+          const name = document.createElement('span');
+          name.className = 'label-name';
+          name.textContent = '📄 ' + item.name;
+          label.appendChild(name);
+
+          label.addEventListener('click', () => loadFile(item.path));
+          node.appendChild(label);
+        }
+        parent.appendChild(node);
+      }
+    }
+
+    // === FILE VIEW ===
+    async function loadFile(filePath) {
+      currentFilePath = filePath;
+      const parts = filePath.split('/');
+      renderBreadcrumb(parts, true);
+
+      main.textContent = '';
+      const loading = document.createElement('div');
+      loading.className = 'loading';
+      loading.textContent = 'Loading...';
+      main.appendChild(loading);
+
+      try {
+        const res = await fetch(`/api/file?path=${encodeURIComponent(filePath)}`);
+        if (!res.ok) throw new Error('Failed to load');
+        const data = await res.json();
+        if (currentFilePath !== filePath) return;
+
+        main.textContent = '';
+        const content = document.createElement('div');
+        content.className = 'content';
+        const article = document.createElement('article');
+        article.className = 'markdown-body';
+        const template = document.createElement('template');
+        template.innerHTML = sanitize(data.html);
+        article.appendChild(template.content);
+        content.appendChild(article);
+        main.appendChild(content);
+        window.scrollTo(0, 0);
+        history.replaceState(null, '', '#' + filePath);
+      } catch (err) {
+        main.textContent = '';
+        const errDiv = document.createElement('div');
+        errDiv.className = 'loading';
+        errDiv.style.color = '#f85149';
+        errDiv.textContent = err.message;
+        main.appendChild(errDiv);
+      }
+    }
+
+    // Hash navigation
+    function handleHash() {
+      const hash = decodeURIComponent(location.hash.slice(1));
+      if (!hash || hash === '') {
+        navigateHome();
+      } else if (hash.startsWith('dir/')) {
+        currentDirPath = hash.slice(4).split('/');
+        renderFileList(currentDirPath);
+      } else {
+        loadFile(hash);
+      }
+    }
+
+    // Init
+    async function init() {
+      // Set toggle button state without rendering
+      btnList.classList.toggle('active', viewMode === 'list');
+      btnTree.classList.toggle('active', viewMode === 'tree');
+
+      main.innerHTML = '<div class="loading">Loading...</div>';
+      const res = await fetch('/api/tree');
+      treeData = await res.json();
+      handleHash();
+    }
+
+    window.addEventListener('hashchange', handleHash);
+    init();
+  </script>
+</body>
+</html>
