@@ -33,6 +33,7 @@ Opening these one-by-one in a terminal or editor is painful, especially from you
 - 🌙 **Dark theme** — GitHub-dark inspired, easy on the eyes
 - 💡 **Syntax highlighting** — code blocks highlighted via highlight.js
 - 🍞 **Breadcrumb navigation** — always know where you are, tap to navigate back
+- ⏪ **Browser back/forward** — full history support, navigate with browser buttons
 - 🔒 **Secure** — HTML sanitized with DOMPurify, directory traversal protection, Tailscale for network security
 - ⚡ **Zero build step** — just `node server.js`, ~33MB memory footprint
 - 🏠 **Local-only** — your files never leave your machine

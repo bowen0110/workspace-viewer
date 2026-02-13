@@ -318,6 +318,7 @@
     let viewMode = localStorage.getItem('viewMode') || 'list';
     let currentFilePath = null;
     let currentDirPath = [];
+    let isPopStateNavigation = false;
 
     // File category icon mapping
     const CATEGORY_ICONS = {
@@ -472,7 +473,12 @@
       }
       main.appendChild(list);
       window.scrollTo(0, 0);
-      history.replaceState(null, '', pathParts.length ? '#dir/' + pathParts.join('/') : '#');
+      const hash = pathParts.length ? '#dir/' + pathParts.join('/') : '#';
+      if (isPopStateNavigation) {
+        history.replaceState(null, '', hash);
+      } else {
+        history.pushState(null, '', hash);
+      }
     }
 
     // === TREE VIEW ===
@@ -574,7 +580,11 @@
 
         main.appendChild(content);
         window.scrollTo(0, 0);
-        history.replaceState(null, '', '#' + filePath);
+        if (isPopStateNavigation) {
+          history.replaceState(null, '', '#' + filePath);
+        } else {
+          history.pushState(null, '', '#' + filePath);
+        }
       } catch (err) {
         main.textContent = '';
         const errDiv = document.createElement('div');
@@ -729,10 +739,17 @@
 
       const res = await fetch('/api/tree');
       treeData = await res.json();
+      // Initial page load should replaceState, not pushState
+      isPopStateNavigation = true;
       handleHash();
+      isPopStateNavigation = false;
     }
 
-    window.addEventListener('hashchange', handleHash);
+    window.addEventListener('popstate', () => {
+      isPopStateNavigation = true;
+      handleHash();
+      isPopStateNavigation = false;
+    });
     init();
   </script>
 </body>
